@@ -1,5 +1,6 @@
 Screen {
     layout: vertical;
+    layers: background default
 }
 
 #host-table {
@@ -15,8 +16,12 @@ Screen {
     margin-top: 1;
 }
 
+/* TODO: less hacky way to make the panel not affect content height? */
 #details-panel.hidden-panel {
-    display: none;
+    layer: background;
+    max-height: 0;
+    padding: 0 0 0 0;
+    margin: 0 0 0 0;
 }
 
 #status-strip {

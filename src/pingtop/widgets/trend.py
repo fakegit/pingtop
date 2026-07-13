@@ -20,6 +20,11 @@ TREND_STYLES = (
 TIMEOUT_STYLE = "bold #ef4444"
 DETAIL_GRAPH_EMPTY_STYLE = "#4b5563"
 DETAIL_GRAPH_AXIS_STYLE = "#9ca3af"
+GRAPH_VERTICAL_LINE = "│"
+GRAPH_HORIZONTAL_LINE = "─"
+GRAPH_LEFT_BOTTOM_CORNER = " └"
+GRAPH_CELL_BUCKET = "█"
+GRAPH_CELL_EMPTY = "·"
 
 
 def render_trend(history: Sequence[float | None] | None, *, width: int | None = None) -> Text:
@@ -70,9 +75,9 @@ def render_trend_graph(
                 continue
             bucket_height = max(1, math.ceil(((bucket + 1) / total_buckets) * height))
             if bucket_height >= level:
-                graph.append("█", style=TREND_STYLES[bucket])
+                graph.append(GRAPH_CELL_BUCKET, style=TREND_STYLES[bucket])
             else:
-                graph.append("·", style=DETAIL_GRAPH_EMPTY_STYLE)
+                graph.append(GRAPH_CELL_EMPTY, style=DETAIL_GRAPH_EMPTY_STYLE)
     return graph
 
 
@@ -92,29 +97,29 @@ def render_detailed_trend_graph(
     if not cells:
         return [header, Text("waiting for samples", style=DETAIL_GRAPH_EMPTY_STYLE)]
 
+    effective_width = width if width is not None else len(cells)
     samples = [sample for sample in cells if sample is not None]
+    lines = [header]
+
     if not samples:
-        timeout_line = Text("timeouts │ ", style=DETAIL_GRAPH_AXIS_STYLE)
-        timeout_line.append(TIMEOUT_MARKER * len(cells), style=TIMEOUT_STYLE)
-        return [
-            header,
-            timeout_line,
-            _render_graph_axis(len(cells), len("timeouts")),
-            Text(" " * (len("timeouts") + 3) + "oldest -> newest", style=DETAIL_GRAPH_AXIS_STYLE),
-        ]
+        # Prefix with spaces to reduce graph snap on initial render if first few pings fail
+        # Assume scale value to be in format XX.X
+        prefix = " " * 5
+        line = Text(prefix + GRAPH_VERTICAL_LINE + " ", style=DETAIL_GRAPH_AXIS_STYLE)
+        line.append(TIMEOUT_MARKER * len(cells), style=TIMEOUT_STYLE)
+        line.append(GRAPH_CELL_EMPTY * (effective_width - len(cells)), style=DETAIL_GRAPH_EMPTY_STYLE)
+        lines += [line] * height
+        lines.append(_render_graph_axis(effective_width, len(prefix) -1))
+        return lines
 
     low = min(samples)
     high = max(samples)
-    avg = sum(samples) / len(samples)
     span = max(high - low, 1.0)
     label_width = max(len(f"{low:.1f}"), len(f"{high:.1f}"))
-    header.append(f"  {low:.1f}..{high:.1f} ms", style=DETAIL_GRAPH_AXIS_STYLE)
-    header.append(f"  avg {avg:.1f}", style=DETAIL_GRAPH_AXIS_STYLE)
 
-    lines = [header]
     for level in range(height, 0, -1):
         scale_value = low + (span * (level - 1) / max(height - 1, 1))
-        line = Text(f"{scale_value:>{label_width}.1f} │ ", style=DETAIL_GRAPH_AXIS_STYLE)
+        line = Text(f"{scale_value:>{label_width}.1f} " + GRAPH_VERTICAL_LINE + " ", style=DETAIL_GRAPH_AXIS_STYLE)
         for sample in cells:
             if sample is None:
                 line.append(TIMEOUT_MARKER, style=TIMEOUT_STYLE)
@@ -125,18 +130,18 @@ def render_detailed_trend_graph(
                 int(((sample - low) / span) * (len(TREND_STYLES) - 1)),
             )
             if sample_height >= level:
-                line.append("█", style=TREND_STYLES[bucket])
+                line.append(GRAPH_CELL_BUCKET, style=TREND_STYLES[bucket])
             else:
-                line.append("·", style=DETAIL_GRAPH_EMPTY_STYLE)
+                line.append(GRAPH_CELL_EMPTY, style=DETAIL_GRAPH_EMPTY_STYLE)
+        line.append(GRAPH_CELL_EMPTY * (effective_width - len(cells)), style=DETAIL_GRAPH_EMPTY_STYLE)
         lines.append(line)
 
-    lines.append(_render_graph_axis(len(cells), label_width))
-    lines.append(Text(" " * (label_width + 3) + "oldest -> newest", style=DETAIL_GRAPH_AXIS_STYLE))
+    lines.append(_render_graph_axis(effective_width, label_width))
     return lines
 
 
 def _render_graph_axis(width: int, label_width: int) -> Text:
     axis = Text(" " * label_width, style=DETAIL_GRAPH_AXIS_STYLE)
-    axis.append(" └", style=DETAIL_GRAPH_AXIS_STYLE)
-    axis.append("─" * width, style=DETAIL_GRAPH_AXIS_STYLE)
+    axis.append(GRAPH_LEFT_BOTTOM_CORNER, style=DETAIL_GRAPH_AXIS_STYLE)
+    axis.append(GRAPH_HORIZONTAL_LINE * (width + 1), style=DETAIL_GRAPH_AXIS_STYLE)
     return axis

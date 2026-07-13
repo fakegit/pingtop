@@ -5,13 +5,13 @@ from typing import cast
 from rich.text import Text
 from textual.widgets import Static
 
+import pingtop.models
 from pingtop.widgets.trend import render_detailed_trend_graph
 
 
 class DetailsPanel(Static):
     DEFAULT_MESSAGE = "Select a host to inspect live statistics."
-    COLUMN_GAP = 4
-    LEFT_COLUMN_MAX_WIDTH = 30
+    COLUMN_GAP = 2
 
     def show_host(self, row: dict[str, object] | None) -> None:
         if row is None:
@@ -33,11 +33,11 @@ class DetailsPanel(Static):
     def _graph_width(self, left_width: int) -> int:
         if self.size.width <= 0:
             return 32
-        available = self.size.width - left_width - self.COLUMN_GAP - 6
-        return max(16, min(72, available))
+        available = self.size.width // 3 * 3 - left_width - self.COLUMN_GAP - 6
+        return max(8, min(pingtop.models.MAX_HISTORY, available))
 
     def _left_column_lines(self, row: dict[str, object]) -> list[str]:
-        return [
+        lines = [
             f"Host: {row['target']}",
             f"IP: {row['resolved_ip'] or '-'}",
             f"State: {row['state']}",
@@ -48,13 +48,18 @@ class DetailsPanel(Static):
             f"StdDev: {self._fmt(row['stddev_ms'])}",
             f"Sent: {row['seq']}",
             f"Loss: {row['lost']} ({float(cast(float, row['loss_percent'])):.1f}%)",
-            f"Error: {self._truncate(str(row['last_error'] or '-'))}",
         ]
+
+        last_err = row.get('last_error')
+        if last_err not in (None, '', b''):
+            lines.append(f"Error: {self._truncate(str(last_err))}")
+
+        return lines
 
     def _left_column_width(self, lines: list[str]) -> int:
         if not lines:
             return 0
-        return min(self.LEFT_COLUMN_MAX_WIDTH, max(len(line) for line in lines))
+        return max(len(line) for line in lines)
 
     def _compose_columns(
         self, left_lines: list[str], right_lines: list[Text], left_width: int

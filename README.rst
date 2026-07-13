@@ -1,10 +1,18 @@
 pingtop
 =======
 
+.. image:: https://github.com/laixintao/pingtop/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/laixintao/pingtop/actions/workflows/ci.yml
+   :alt: CI
+
 ``pingtop`` is a fast, keyboard-first multi-host ping monitor for people who live in the terminal.
 Point it at a few hosts, a whole subnet, or a host list, and get a live Textual dashboard with RTT trends, loss stats, sortable columns, and per-host drill-down details.
 
 It is built for the moment when ``ping`` is too small, dashboards are too heavy, and you just want to see what your network is doing right now.
+
+.. image:: https://asciinema.org/a/886189.svg
+   :target: https://asciinema.org/a/886189
+   :alt: asciinema demo
 
 Why ``pingtop``
 ---------------
@@ -181,9 +189,12 @@ If you export a snapshot, the file includes session config, aggregate stats, and
 Permissions
 -----------
 
-``pingtop`` uses ICMP sockets directly.
+``pingtop`` uses ICMP sockets directly and does **not** require ``sudo`` or root privileges on modern systems.
 
-On Linux, non-root access depends on ``net.ipv4.ping_group_range``. If you hit a permission error, inspect the current value:
+- **macOS** — unprivileged ICMP is supported out of the box.
+- **Linux** — most distributions ship with a permissive ``net.ipv4.ping_group_range`` by default.
+
+If you do hit a permission error on Linux, check the current value:
 
 ::
 
@@ -197,6 +208,8 @@ Then widen the allowed range so your user or group can open ICMP sockets:
 
 Development
 -----------
+
+You may need to set `poetry config virtualenvs.in-project true` for the included vscode launch.json to work.
 
 ::
 
